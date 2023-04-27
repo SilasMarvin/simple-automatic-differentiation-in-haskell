@@ -1,4 +1,4 @@
-# Revision history for h-fun
+# Revision history for simple-automatic-differentiation-in-haskell
 
 ## 0.1.0.0 -- YYYY-mm-dd
 
