@@ -37,6 +37,15 @@ applyGrads op parentGrads leftValue rightValue
   | op == DV = (parentGrads * (1 / rightValue), parentGrads * (-1) * (leftValue / (rightValue * rightValue)))
   | op == AD = (parentGrads, parentGrads)
 
+tAdd :: (Fractional a, Eq a) => Tensor0D a -> Tensor0D a -> State (Tape a) (Tensor0D a)
+tAdd t1@Tensor0D { tid = id1, value = value1 } t2@Tensor0D { tid = id2, value = value2 } = do
+  tape <- get
+  let tensorId = nextTensorId tape
+  let ops = operations tape
+  let newTensor = Tensor0D tensorId (value1 + value2)
+  put $ tape {nextTensorId = tensorId + 1, operations = Operation AD newTensor t1 t2 : ops}
+  return newTensor
+
 tMul :: (Fractional a, Eq a) => Tensor0D a -> Tensor0D a -> State (Tape a) (Tensor0D a)
 tMul t1@Tensor0D { tid = id1, value = value1 } t2@Tensor0D { tid = id2, value = value2 } = do
   tape <- get
@@ -53,15 +62,6 @@ tDiv t1@Tensor0D { tid = id1, value = value1 } t2@Tensor0D { tid = id2, value = 
   let ops = operations tape
   let newTensor = Tensor0D tensorId (value1 / value2)
   put $ tape {nextTensorId = tensorId + 1, operations = Operation DV newTensor t1 t2 : ops}
-  return newTensor
-
-tAdd :: (Fractional a, Eq a) => Tensor0D a -> Tensor0D a -> State (Tape a) (Tensor0D a)
-tAdd t1@Tensor0D { tid = id1, value = value1 } t2@Tensor0D { tid = id2, value = value2 } = do
-  tape <- get
-  let tensorId = nextTensorId tape
-  let ops = operations tape
-  let newTensor = Tensor0D tensorId (value1 + value2)
-  put $ tape {nextTensorId = tensorId + 1, operations = Operation AD newTensor t1 t2 : ops}
   return newTensor
 
 appendTree :: (Fractional a, Eq a) => Operation a -> TensorTree a -> TensorTree a
@@ -99,12 +99,15 @@ backward = do
 
 doComputations :: (Fractional a, Eq a) => State (Tape a) (Tensor0D a, Map.Map Int a)
 doComputations = do
-  t0 <- createTensor 1 
-  t1 <- createTensor 2
-  t2 <- tDiv t1 t0
-  t3 <- tAdd t2 t1
+  t0 <- createTensor 1.5
+  t1 <- createTensor 2.5
+  t2 <- createTensor 3.5
+  t3 <- createTensor 4.5
+  t4 <- tMul t0 t1
+  t5 <- tDiv t4 t2
+  t6 <- tAdd t5 t3
   grads <- backward
-  return (t3, grads)
+  return (t6, grads)
 
 main :: IO ()
 main = do
